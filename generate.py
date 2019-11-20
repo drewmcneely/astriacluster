@@ -63,6 +63,7 @@ def generate_data(filename="SpaceObjects-20191030.json"):
     df['SpecificAngularMomentum'] = [cross(r, v) for (r, v) in zip(df.Position, df.Velocity)]
     df['LRL'] = [(cross(v, h) / mu) - (r/norm(r)) for (r, v, h) in zip(df.Position, df.Velocity, df.SpecificAngularMomentum)]
 
+
     return df
 
 if __name__ == '__main__':
