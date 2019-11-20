@@ -76,7 +76,7 @@ def generate_data():
     LRL_z
     """
 
-    filename = "SpaceObjects-20191030.json"
+    filename = "input/SpaceObjects-20191030.json"
     with open(filename, 'r') as f:
         data = json.load(f)
 

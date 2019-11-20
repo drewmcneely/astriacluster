@@ -40,9 +40,9 @@ import pandas as pd
 
 def main():
     df = generate_data()
-    df.to_pickle('data.pkl')
+    df.to_pickle('input/data.pkl')
 
-def generate_data(filename="SpaceObjects-20191030.json"):
+def generate_data(filename="input/SpaceObjects-20191030.json"):
     """ Load the specified json file and return a pandas DataFrame with extra calculated data.
     """
 
