@@ -1,27 +1,67 @@
 #!/usr/bin/python3
-import time
 import warnings
 
 import pandas as pd
 import numpy as np
 
-import matplotlib.pyplot as plt
-
 from sklearn import cluster
-from sklearn.cluster import OPTICS
 from sklearn.preprocessing import StandardScaler
 
-from itertools import cycle, islice
+from plot_cluster import *
+
+import pickle
 
 def main():
-    raw_data = read_data()
+    data = pd.read_pickle('output/clustered_data.pkl')
+    with open('output/optics.pkl', 'rb') as f:
+        clust = pickle.load(f)
+
+    def labels_eps(eps):
+        out = cluster.cluster_optics_dbscan(reachability=clust.reachability_,
+                                   core_distances=clust.core_distances_,
+                                   ordering=clust.ordering_, eps=eps)
+        return out
+    labels = clust.labels_[clust.ordering_]
+
+    eps = [0.1, 0.2, 0.3, 0.5, 2.0]
+    db_labels = [labels] + [labels_eps(e) for e in eps]
+    figs = [constants_of_motion_plot(data, l) for l in db_labels]
+    fig2s = [keplerian_plot(data, l) for l in db_labels]
+    fig3s = [equinoctial_plot(data, l) for l in db_labels]
+
+    titleadd = ["Default OPTICS"] + ["epsilon = %f" % e for e in eps]
+    for fs in (figs, fig2s, fig3s):
+        for k, f in enumerate(fs):
+            s = f._suptitle.get_text()
+            f._suptitle.set_text(s + "\n" + titleadd[k])
+
+    for i in plt.get_fignums():
+        f = plt.figure(i)
+        plt.tight_layout(rect=[0, 0, 1, 0.85])
+        #plt.constrained_layout()
+        plt.savefig('figure%d.png' % i, dpi=200)
+
+def optics_save():
+    raw_data = pd.read_pickle('input/data.pkl')
     all_data, clustering_data = clean_data(raw_data)
-    labels = dbscan(clustering_data)
-    data_to_plot = all_data[['SMA', 'Ecc']]
-    plot(data_to_plot, labels)
+    clust = optics(clustering_data, eps=0.15)
+    all_data.to_pickle('output/clustered_data.pkl')
+    with open('output/optics.pkl', 'wb') as f:
+        pickle.dump(clust, f)
 
+def cluster_data():
+    raw_data = pd.read_pickle('input/data.pkl')
+    all_data, clustering_data = clean_data(raw_data)
+    all_data['dbscan_labels'] = dbscan(clustering_data, eps=0.15)
+    all_data.to_pickle('output/clustered_data.pkl')
 
-def read_data(filename='input/data.pkl'): return pd.read_pickle(filename)
+def plot_data():
+    data = pd.read_pickle('output/clustered_data.pkl')
+    labels = data['dbscan_labels']
+    fig = equinoctial_plot(data, labels)
+    fig2 = keplerian_plot(data, labels)
+    fig3 = constants_of_motion_plot(data, labels)
+    plt.show()
 
 def clean_data(df):
     """ Take a full DataFrame and return cleaned DataFrames
@@ -82,23 +122,19 @@ def clean_data(df):
         'SpecificAngularMomentum2'
         ]]
 
+    clustering_data = StandardScaler().fit_transform(clustering_data)
+
     return all_data, clustering_data
 
-def dbscan(clustering_data):
+def dbscan(clustering_data, eps=0.3, min_samples=15):
     """ Take clustering data and return a list of labels 
 
     input: dataframe of data to be clustered
     output: list of ints representing labels for each row in clustering_data
     """
 
-    clustering_data = StandardScaler().fit_transform(clustering_data)
-
-    # Params
-    eps = 0.3
-    min_samples=15
-
-    algorithm = cluster.DBSCAN(eps=eps)
-    t0 = time.time()
+    print("dbscan")
+    algorithm = cluster.DBSCAN(eps=eps, min_samples=min_samples)
 
     # catch warnings related to kneighbors_graph
     with warnings.catch_warnings():
@@ -113,10 +149,8 @@ def dbscan(clustering_data):
             message="Graph is not fully connected, spectral embedding" +
             " may not work as expected.",
             category=UserWarning)
-
         algorithm.fit(clustering_data)
 
-    t1 = time.time()
     if hasattr(algorithm, 'labels_'):
         labels = algorithm.labels_.astype(np.int)
     else:
@@ -124,75 +158,36 @@ def dbscan(clustering_data):
 
     return labels
 
-def plot(data, labels):
-    """ Plot the given DataFrame with colors corresponding to given labels.
+def optics(clustering_data, eps=0.3, min_samples=15):
+    """ Take clustering data and return a list of labels 
 
-    input data must have rows representing points and columns representing axes
-    data.shape must be (num_points, 2) or (num_points, 3)
-    len(labels) must be num_points
+    input: dataframe of data to be clustered
+    output: list of ints representing labels for each row in clustering_data
     """
 
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
+    print("optics")
+    algorithm = cluster.OPTICS()
 
-    colors = np.array(
-        list(
-            islice(
-                cycle(
-                    ['#377eb8', '#ff7f00', '#4daf4a',
-                    '#f781bf', '#a65628', '#984ea3',
-                    '#999999', '#e41a1c', '#dede00']
-                    ),
-                int(max(labels) + 1)
-                )
-            )
-        )
-    # add black color for outliers (if any)
-    colors = np.append(colors, ["#000000"])
+    # catch warnings related to kneighbors_graph
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore",
+            message="the number of connected components of the " +
+                "connectivity matrix is [0-9]{1,2}" +
+                " > 1. Completing it to avoid stopping the tree early.",
+            category=UserWarning)
+        warnings.filterwarnings(
+            "ignore",
+            message="Graph is not fully connected, spectral embedding" +
+            " may not work as expected.",
+            category=UserWarning)
+        algorithm.fit(clustering_data)
 
-    ax.scatter(data['SMA'], data['Ecc'], s=10, color=colors[labels])
-    ax.set(
-            title='Clustering of Keplerian Elements using DBSCAN',
-            xlim=(0,6e7),
-            ylim=(0,1),
-            xlabel='SMA',
-            ylabel='Ecc'
-            )
+    if hasattr(algorithm, 'labels_'):
+        labels = algorithm.labels_.astype(np.int)
+    else:
+        labels = algorithm.predict(clustering_data)
 
-    #plt.xlim(-2.5, 2.5)
-    #plt.ylim(-2.5, 2.5)
-    #plt.xticks(())
-    #plt.yticks(())
-    #plt.text(.99, .01, ('%.2fs' % (t1 - t0)).lstrip('0'),
-    #transform=plt.gca().transAxes, size=15,
-    #horizontalalignment='right')
-    #plot_num += 1
-
-    plt.show()
-    #space = np.arange(len(df1.index))
-    #reachability = clust.reachability_[clust.ordering_]
-    #labels = clust.labels_[clust.ordering_]
-    #
-    #plt.figure(figsize=(10, 7))
-    #G = gridspec.GridSpec(2, 3)
-    #ax1 = plt.subplot(G[0, :])
-    #ax2 = plt.subplot(G[1, 0])
-    #ax3 = plt.subplot(G[1, 1])
-    #ax4 = plt.subplot(G[1, 2])
-    #
-    ## Reachability plot
-    #colors = ['g.', 'r.', 'b.', 'y.', 'c.']
-    #for klass, color in zip(range(0, 5), colors):
-    #    Xk = space[labels == klass]
-    #    Rk = reachability[labels == klass]
-    #    ax1.plot(Xk, Rk, color, alpha=0.3)
-    #ax1.plot(space[labels == -1], reachability[labels == -1], 'k.', alpha=0.3)
-    #ax1.plot(space, np.full_like(space, 2., dtype=float), 'k-', alpha=0.5)
-    #ax1.plot(space, np.full_like(space, 0.5, dtype=float), 'k-.', alpha=0.5)
-    #ax1.set_ylabel('Reachability (epsilon distance)')
-    #ax1.set_title('Reachability Plot')
-    #
-    #plt.tight_layout()
-    #plt.show()
+    return algorithm
 
 if __name__=="__main__": main()
