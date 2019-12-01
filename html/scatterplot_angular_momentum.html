@@ -18,6 +18,10 @@
 	<!-- Hosted copy of a-scatterplot -->
 	<script src="//cdn.rawgit.com/zcanter/aframe-scatterplot/master/dist/a-scatterplot.min.js"></script> 
 
+	<!-- Hosted copy of jquery -->
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+
 	<!-- Local, development copy of a-scatterplot -->
 	<!--
 	<script src="../dist/a-scatterplot.min.js"></script> 
@@ -66,6 +70,9 @@
 </head>
  
 <body style="background-color:#000">
+
+<select id="EpsilonPicker"></select>
+
 <a-scene>
 
 
@@ -89,19 +96,22 @@
 	<a-entity rotation="0 90 0"><!-- rotate these three so that the Z axis, which the a-scatterplot uses for data height, points toward the a-frame sky -->
 		 
 		<a-scatterplot 
-			src="url(json/data.json)"
+		   	id="scatter"
+			src="url(json/labeled_data.json)"
 			title="Angular Momentum Vector" 
 			x="SpecificAngularMomentum1"
 			y="SpecificAngularMomentum2"
-		    z="SpecificAngularMomentum0" val="labels" 
-			valfill="-32768, 4506" relationship="xz"
+		    z="SpecificAngularMomentum0"
+	  		val="labels_epsilon_0.10"
+	 		colorpreset="jetseg"
+			relationship="xyz"
 			xlabel="h_x" ylabel="h_y" zlabel="h_z"
 			numdecimalplaces="0"
 			ycage="true"
 			showFloor="true" floorMaterialParams="color: #fff; opacity:0.1; transparent:true; " 
-			showcolorbar="false"
+			showcolorbar="true"
 			colorpreset="hot" textColor="#EEE"
-			pointsize="1" 
+			pointsize=".25" 
 			scale="1 1 1" position="0 0 0" rotation="0 0 0"></a-scatterplot>
 
 		<!-- a second scatterplot directly on top, so we can show two different data sets -->
