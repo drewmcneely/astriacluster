@@ -1,0 +1,35 @@
+The following is how AstriaGraph labels its objects
+
+function DisplayObjects(D)
+	active = []
+
+	for s in D
+		trk = D[s]
+
+		if trk["DataSource"] == "UCS"
+			active.push(trk["NoradID"])
+
+		if trk["DataSource"] == USSSTRATCOM
+			   && trk["BirthDate"].length > 4
+			   && Number(trk["BirthDate"].slice(0,4)) >= 2017
+			   && trk["Name"].search("DEB") == -1
+			   && trk["Name"].search("R/B") == -1
+			active.push(trk["NoradID"])
+
+	for s in D
+		trk = D[s]
+
+		if active.indexOf(trk["NoradID"]) == -1
+			color = cyan
+		else color = darkorange
+
+		if trk["Name"].search("R/B") != -1
+			col = mediumorchid
+		if trk["Name"].search("DEB") != -1
+			col = gray
+		if ( trk["DataSource"] == "JSC Vimpel" &&
+			 trk["NoradID"] == "")
+			 ||
+			 trk["DataSource"] == "SeeSat-L"
+		
+			color = deeppink
