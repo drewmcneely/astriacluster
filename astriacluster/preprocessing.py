@@ -1,6 +1,10 @@
 from . import constants
 
 import numpy as np
+from numpy import cross, pi
+from numpy.linalg import norm
+
+import pandas as pd
 
 def preprocess_data(jsondata):
     """ Load the specified json file and return a pandas DataFrame with extra calculated data.
@@ -32,17 +36,16 @@ def preprocess_data(jsondata):
     EquLm = MeanAnom + omega + Omega ???
 
     columns of output are as follows:
-    Index(['CatalogId', 'NoradId', 'Name', 'BallCoeff', 'Country', 'Epoch', 'SMA',
-       'Ecc', 'Inc', 'RAAN', 'ArgP', 'MeanAnom', 'EquEx', 'EquEy', 'EquHx',
-       'EquHy', 'EquLm', 'OrbitType', 'BirthDate', 'DragCoeff', 'ReflCoeff',
-       'AreaToMass', 'Operator', 'Users', 'Purpose', 'DetailedPurpose',
-       'LaunchMass', 'DryMass', 'Power', 'Lifetime', 'Contractor',
-       'LaunchSite', 'LaunchVehicle', 'SpecificEnergy', 'LRL0', 'LRL1', 'LRL2',
-       'SpecificAngularMomentum0', 'SpecificAngularMomentum1',
-       'SpecificAngularMomentum2', 'Position0', 'Position1', 'Position2',
-       'Velocity0', 'Velocity1', 'Velocity2'],
-      dtype='object')
 
+    Index(['CatalogId', 'NoradId', 'Name', 'BallCoeff', 'Country', 'Epoch', 'SMA',
+           'Ecc', 'Inc', 'RAAN', 'ArgP', 'MeanAnom', 'EquEx', 'EquEy', 'EquHx',
+           'EquHy', 'EquLm', 'OrbitType', 'BirthDate', 'DragCoeff', 'ReflCoeff',
+           'AreaToMass', 'Operator', 'Users', 'Purpose', 'DetailedPurpose',
+           'LaunchMass', 'DryMass', 'Power', 'Lifetime', 'Contractor',
+           'LaunchSite', 'LaunchVehicle', 'energy', 'r_0', 'r_1', 'r_2', 'v_0',
+           'v_1', 'v_2', 'h_0', 'h_1', 'h_2', 'lrl_0', 'lrl_1', 'lrl_2', 'perigee',
+           'apogee', 'perigee_altitude', 'apogee_altitude', 'period'],
+          dtype='object')
     """
 
     data = []
@@ -51,19 +54,21 @@ def preprocess_data(jsondata):
 
     df = pd.DataFrame(data)
     df = df[pd.notnull(df.Cart)] # Purge rows with a missing 'Cart' value
+    df = df[df['SMA'] > 0]
 
     positions = [x[:3] for x in df.Cart]
     velocities = [x[3:] for x in df.Cart]
 
-    energies = [norm(v)**2 / 2 - mu/norm(r) for (r, v) in zip(positions, velocities)]
+    energies = [norm(v)**2 / 2 - constants.mu/norm(r) for (r, v) in zip(positions, velocities)]
+    df['energy'] = energies
+
     h_vectors = [cross(r, v) for (r, v) in zip(positions, velocities)]
-    lrl_vectors = [(cross(v, h) / mu) - (r/norm(r)) for (r, v, h) in zip(positions, velocities, h_vectors)]
+    lrl_vectors = [(cross(v, h) / constants.mu) - (r/norm(r)) for (r, v, h) in zip(positions, velocities, h_vectors)]
 
     def flatten(vector_list, name):
-
         vector_array = np.array(vector_list)
         df = pd.DataFrame(vector_array)
-        df.add_prefix(name + '_')
+        df = df.add_prefix(name + '_')
 
         return df
 
@@ -74,14 +79,13 @@ def preprocess_data(jsondata):
 
     df = df.drop(columns=['Cart'])
     df = pd.concat([df, positions, velocities, h_vectors, lrl_vectors], axis='columns')
-    df['energy'] = energies
 
     df['perigee'] = df['SMA'] * (1 - df['Ecc'])
     df['apogee'] = df['SMA'] * (1 + df['Ecc'])
     df['perigee_altitude'] = df['perigee'] - constants.earth_radius
     df['apogee_altitude'] = df['apogee'] - constants.earth_radius
 
-    df['period'] = 2*constants.pi * np.sqrt(df['SMA']**3 / mu)
+    df['period'] = 2*constants.pi * np.sqrt(df['SMA']**3 / constants.mu)
 
     return df
 
@@ -121,7 +125,9 @@ def purge_outliers(data):
         'v_0', 'v_1', 'v_2', 
         ]]
 
-    records_to_keep = nullable_entries.notnull().any(axis=1)
+    notnulls = nullable_entries.notnull().any(axis=1)
+    notinfs = nullable_entries[nullable_entries != np.inf].any(axis=1)
+    records_to_keep = np.logical_and(notnulls, notinfs)
 
     data = data[records_to_keep]
 

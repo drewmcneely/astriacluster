@@ -3,8 +3,6 @@ import warnings
 
 import pandas as pd
 import numpy as np
-from numpy import cross, pi
-from numpy.linalg import norm
 
 from sklearn import cluster
 from sklearn.preprocessing import StandardScaler
@@ -19,13 +17,13 @@ def fit_optics(data):
     """
 
     clusterable_data = data[[
-        'SpecificEnergy',
-        'LRL0',
-        'LRL1',
-        'LRL2',
-        'SpecificAngularMomentum0',
-        'SpecificAngularMomentum1',
-        'SpecificAngularMomentum2'
+        'energy',
+        'lrl_0',
+        'lrl_1',
+        'lrl_2',
+        'h_0',
+        'h_1',
+        'h_2'
         ]]
 
     clusterable_data = StandardScaler().fit_transform(clusterable_data)
@@ -60,7 +58,7 @@ def dbscan_labels_from_optics(optics_object, epsilon=default_eps):
             ordering=optics_object.ordering_, eps=epsilon)
     return labels
 
-def remap_labels_to_sorted(labels, num_labels=7):
+def remap_labels_to_sorted(labels, num_labels=10, labeltype=str):
     """ Return labels that sequence by the size of the cluster.
 
     -1 still corresponds to outliers
@@ -75,8 +73,16 @@ def remap_labels_to_sorted(labels, num_labels=7):
         if l not in sorted_labels: return -1
         else: return sorted_labels.index(l)
 
-    newlabels = list(map(labelmap, labels))
-    return newlabels
+    def labelmap_str(l):
+        if l not in sorted_labels: return "outlier"
+        else: return "cluster_" + str(sorted_labels.index(l))
+
+    if labeltype == str: return list(map(labelmap_str, labels))
+    else: return list(map(labelmap, labels))
+
+def most_common_labels(optics_object, num_labels=10, epsilon=default_eps, labeltype=str):
+    labels = dbscan_labels_from_optics(optics_object, epsilon=epsilon)
+    return remap_labels_to_sorted(labels, num_labels=num_labels, labeltype=labeltype)
 
 def label_data(data, optics_object, epsilons=np.arange(0.05, 1.0, 0.05)):
     output = data.copy()
