@@ -28,19 +28,16 @@ def read_spaceobjects_json(filename=raw_data_path):
 
 def write_processed_data(data, filename=processed_data_path): data.to_pickle(filename)
 def read_processed_data(filename=processed_data_path): return pd.read_pickle(filename)
-def csv_processed_data(data, filename=(processed_data_dir/'data.csv')): data.to_csv(filename, index=False)
+def write_processed_data_csv(data, filename=(processed_data_dir/'data.csv')): data.to_csv(filename, index=False)
 
 def write_optics_object(optics_object, filename=optics_path):
     with open(filename, 'wb') as f:
         pickle.dump(optics_object, f)
 
-def read_optics_object(filename='optics_object.pkl'):
+def read_optics_object(filename=optics_path):
     with open(filename, 'rb') as f:
         optics_object = pickle.load(f)
     return optics_object
-
-def write_labeled_data_to_aframe_json(data, filename='/home/drew/cluster/html/json/labeled_data.json'):
-    data.to_json(filename, 'records')
 
 def write_processed_data(data, filename=processed_data_path): data.to_pickle(filename)
 def read_processed_data(filename=processed_data_path): return pd.read_pickle(filename)
@@ -55,3 +52,20 @@ def csv_clusters(data, labels, data_path=clustered_data_dir):
 
         filepath = data_path / (label + ".csv")
         df.to_csv(filepath, index=False)
+
+def write_clusters_json(data, labels, filename='clusters.json'):
+    """ Take a DataFrame and write as a json object featuring a 2D array for each cluster.
+    """
+
+    filepath = clustered_data_dir / filename
+    jsondata = {}
+    for i in data.groupby(labels):
+        label = i[0]
+        df = i[1].to_numpy().tolist()
+        jsondata[label] = df
+
+    with open(filepath, 'w') as f:
+        json.dump(jsondata, f)
+
+
+
