@@ -6,31 +6,43 @@
   <script src="https://aframe.io/releases/0.9.2/aframe.min.js"></script> 
   <script src="https://unpkg.com/aframe-point-component/dist/aframe-point-component.min.js"></script> 
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
   <script>
     $(document).ready(function() {
-      $.getJSON("clusters.json", function(data) {
-        let point_element = document.getElementById("cluster_0")
-        console.log(point_element)
-        point_element.components.point.setPoints(data.cluster_0);
+      $.getJSON("momentum_clusters.json", function(data) {
+
+        var i;
+        var cluster_names = Object.keys(data);
+        for (i = 0; i < cluster_names.length; i++) {
+
+          let cluster_name = cluster_names[i];
+          let point_element = document.getElementById(cluster_name)
+
+          point_element.components.point.setPoints(data[cluster_name]);
+
+        }
       });
     });
   </script>
+
 </head>
 
 <body>
   <a-scene background="color: #333F48">
 
-    <a-point id="cluster_0" position="0 0 0" rotation="-90 0 0" size="2" color="#bf5700"></a-point>
-    <a-point id="cluster_1" position="0 0 0" rotation="-90 0 0" size="2" color="#bf5700"></a-point>
-    <a-point id="cluster_2" position="0 0 0" rotation="-90 0 0" size="2" color="#bf5700"></a-point>
-    <a-point id="cluster_3" position="0 0 0" rotation="-90 0 0" size="2" color="#bf5700"></a-point>
-    <a-point id="cluster_4" position="0 0 0" rotation="-90 0 0" size="2" color="#bf5700"></a-point>
-    <a-point id="cluster_5" position="0 0 0" rotation="-90 0 0" size="2" color="#bf5700"></a-point>
-    <a-point id="cluster_6" position="0 0 0" rotation="-90 0 0" size="2" color="#bf5700"></a-point>
-    <a-point id="cluster_7" position="0 0 0" rotation="-90 0 0" size="2" color="#bf5700"></a-point>
-    <a-point id="cluster_8" position="0 0 0" rotation="-90 0 0" size="2" color="#bf5700"></a-point>
-    <a-point id="cluster_9" position="0 0 0" rotation="-90 0 0" size="2" color="#bf5700"></a-point>
+    <a-point id="cluster_0" position="0 0 0" rotation="-90 0 0" size="0.005" perspective="true" color="red"></a-point>
+    <a-point id="cluster_1" position="0 0 0" rotation="-90 0 0" size="0.005" perspective="true" color="orange"></a-point>
+    <a-point id="cluster_2" position="0 0 0" rotation="-90 0 0" size="0.005" perspective="true" color="yellow"></a-point>
+    <a-point id="cluster_3" position="0 0 0" rotation="-90 0 0" size="0.005" perspective="true" color="green"></a-point>
+    <a-point id="cluster_4" position="0 0 0" rotation="-90 0 0" size="0.005" perspective="true" color="blue"></a-point>
+    <a-point id="cluster_5" position="0 0 0" rotation="-90 0 0" size="0.005" perspective="true" color="purple"></a-point>
+    <a-point id="cluster_6" position="0 0 0" rotation="-90 0 0" size="0.005" perspective="true" color="darkred"></a-point>
+    <a-point id="cluster_7" position="0 0 0" rotation="-90 0 0" size="0.005" perspective="true" color="darksalmon"></a-point>
+    <a-point id="cluster_8" position="0 0 0" rotation="-90 0 0" size="0.005" perspective="true" color="darkolivegreen"></a-point>
+    <a-point id="cluster_9" position="0 0 0" rotation="-90 0 0" size="0.005" perspective="true" color="darkseagreen"></a-point>
+    <a-point id="outlier"   position="0 0 0" rotation="-90 0 0" size="0.005" perspective="true" color="black"></a-point>
 
   </a-scene>
+
 </body>
 </html>
